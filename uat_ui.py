@@ -1,5 +1,6 @@
 import pygame
 from uat.uat_mechanics import Car
+from uat.machine_spec import MachineSpec
 from math import copysign
 import os
 
@@ -8,8 +9,8 @@ class Game:
     def __init__(self):
         pygame.init()
         pygame.display.set_caption("Safety Steering Strategy")
-        width = 1280
-        height = 960
+        width: int = 1280
+        height: int = 960
         self.screen = pygame.display.set_mode((width, height))
         self.clock = pygame.time.Clock()
         self.ticks = 60
@@ -19,8 +20,9 @@ class Game:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         image_path = os.path.join(current_dir, "uat.png")
         car_image = pygame.image.load(image_path)
-        car = Car(0, 0)
-        ppu = 32
+        car = Car()
+        machine_spec = MachineSpec()
+        ppu: int = 32
 
         while not self.exit:
             dt = self.clock.get_time() / 1000
@@ -35,26 +37,26 @@ class Game:
 
             if pressed[pygame.K_UP]:
                 if car.velocity.x < 0:
-                    car.acceleration = car.brake_deceleration
+                    car.acceleration = machine_spec.brake_deceleration
                 else:
                     car.acceleration += 1 * dt
             elif pressed[pygame.K_DOWN]:
                 if car.velocity.x > 0:
-                    car.acceleration = -car.brake_deceleration
+                    car.acceleration = -machine_spec.brake_deceleration
                 else:
                     car.acceleration -= 1 * dt
             elif pressed[pygame.K_SPACE]:
-                if abs(car.velocity.x) > dt * car.brake_deceleration:
-                    car.acceleration = -copysign(car.brake_deceleration, car.velocity.x)
+                if abs(car.velocity.x) > dt * machine_spec.brake_deceleration:
+                    car.acceleration = -copysign(machine_spec.brake_deceleration, car.velocity.x)
                 else:
                     car.acceleration = -car.velocity.x / dt
             else:
-                if abs(car.velocity.x) > dt * car.free_deceleration:
-                    car.acceleration = -copysign(car.free_deceleration, car.velocity.x)
+                if abs(car.velocity.x) > dt * machine_spec.free_deceleration:
+                    car.acceleration = -copysign(machine_spec.free_deceleration, car.velocity.x)
                 else:
                     if dt != 0:
                         car.acceleration = -car.velocity.x / dt
-            car.acceleration = max(-car.max_acceleration, min(car.acceleration, car.max_acceleration))
+            car.acceleration = max(min(car.acceleration, machine_spec.max_acceleration), -machine_spec.max_acceleration)
 
             if pressed[pygame.K_RIGHT]:
                 car.steering -= 30 * dt
@@ -62,7 +64,7 @@ class Game:
                 car.steering += 30 * dt
             else:
                 car.steering = 0
-            car.steering = max(-car.max_steering, min(car.steering, car.max_steering))
+            car.steering = max(-machine_spec.max_steering_angle, min(car.steering, machine_spec.max_steering_angle))
 
             # Logic
             car.update(dt)
@@ -71,7 +73,9 @@ class Game:
             self.screen.fill((0, 0, 0))
             rotated = pygame.transform.rotate(car_image, car.angle)
             rect = rotated.get_rect()
-            self.screen.blit(rotated, car.position * ppu - (rect.width / 2, rect.height / 2))
+            x_pos = car.position.x * ppu - rect.width / 2
+            y_pos = car.position.y * ppu - rect.height / 2
+            self.screen.blit(rotated, (x_pos, y_pos))
             pygame.display.flip()
 
             self.clock.tick(self.ticks)
